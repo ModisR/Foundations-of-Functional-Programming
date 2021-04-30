@@ -1,0 +1,257 @@
+\section{Lambda-calculus and Combinatory Logic}
+\newcommand\reduce{\ \triangleright\ }
+
+In this section on lambda-calculus and combinatory logic (or "lambda" and "CL" as we shall call them for short), we present the ideas of $\beta$-reduction and weak reduction, which are important for evaluating functional expressions. This is based on the material in Hindley and Seldin's excellent book {\it Lambda-calculus and Combinators: an Introduction}~\cite{LambdaAndCombinatorsIntro}. Despite being "an Introduction", the book goes into great detail, including such topics as the undecidability theorem, formal theories, extensionality, and correspondence between lambda and CL in chapters 4 to 9. This is much more than that required for programming, and so we shall restrict ourselves to the most salient points.
+
+\subsection{Function Notation}
+Lambda is all about the rules of manipulation of expressions called $\lambda$-terms, which we shall call ``terms''.
+To begin with, let us introduce the notation which gives this field its name. We have all seen the more usual mathematical notation for a function:
+\begin{equation*}
+    f(x,y) = x-y.
+\end{equation*}
+In the notation of lambda-calculus, we can move the arguments $x,y$ to the right side of the equation to get
+\begin{equation*}
+    f = \lambda xy.x-y.
+\end{equation*}
+What this allows one to do is define and call a function without naming it. That is, instead of writing $f(5,3) = 2$, we can directly put
+\begin{equation}
+    (\lambda xy.x-y)(5,3) = 2.
+\end{equation}
+
+\subsection{Currying}
+As shown by our \code{deriv} example in section 2.2, one way in which functional programming treats functions as data is by allowing them to be input values for higher order functions. The other way is by returning functions as outputs. In $\lambda$-calculus (and indeed the Haskell language) every multivariate function does this by convention:
+\begin{equation}
+    \lambda x.\lambda y.E \equiv \lambda xy.E.
+\end{equation}
+where $E$ is an arbitrary expression in terms of $x$ and $y$\footnote{or no $x$ and $y$ at all in the case of a constant function}. To see this, let's write our function $f$ from the previous section like so:
+\begin{equation}
+    f=\lambda x.\lambda y.x-y.
+\end{equation}
+Note how we have separated our arguments $x, y$ such that instead of being passed to $f$ both at once as the pair $(x, y)$, we can put only one in to get a new function which takes the second argument:
+\begin{equation}
+    f(5)=(\lambda x.\lambda y.x^2-y^2)(3)=\lambda y.3^2-y^2=\lambda y.9-y^2:=f^*.
+\end{equation}
+We call this new function $f^*$ and can now call it separately from $f$:
+\begin{equation}
+    f^*(2)=(\lambda y.9-y^2)(2)=9-4=5.
+\end{equation}
+In other words, we have made the 2-variable function $f$ into a 1-variable one which returns another 1-variable function, which we call $f^*$ in the case $x=3$. This is generalised in lambda to all functions, such that every $n$-variable function actually accepts 1 argument and becomes an $(n-1)$-variable function:
+\begin{equation}
+    \lambda x_1x_2...x_n.E \equiv \lambda x_1.\lambda x_2...\lambda x_n.E.
+\end{equation}
+This is called currying, after American logician Haskell Brooks Curry\cite{LambdaAndCombinatorsIntro}. It allows one to perform {\it partial application} of a function, ie supply only some of its arguments. We will see why this is useful by returning to our \code{deriv} example in the next section.
+
+\subsection{An Example of Partial Application}
+In Haskell, lambda expressions are written with a backslash instead of a $\lambda$ and an arrow \code{->} instead of a dot. Thus, instead of
+\begin{lstlisting}
+    hypot = \a b -> sqrt (a*a + b*b)
+    
+    deriv = \f x -> (f (x+h) - f x) / h
+        where h = 0.001
+\end{lstlisting}
+
+Now suppose we want to write a new function, \code{deriv2}, to compute the 2\textsuperscript{nd} derivative. If we did not have currying, we would have to write a $\lambda$ expression like so:
+\com{Now you use different notations to what was used in this section.
+Why you switch to those? Possibly write first in $\lambda$ style and then in Haskel? Reader is still adapting new notations, too soon to jump back. This part can be a good example if explained more slowly and properly}
+\begin{lstlisting}
+    deriv2 f x = deriv (\y -> deriv f y) x
+\end{lstlisting}
+
+This might seem a very neat and tidy way of expressing the second derivative given the first but currying allows us to write this even more succinctly:
+\begin{lstlisting}
+    deriv2 f x = deriv (deriv f) x
+\end{lstlisting}
+What we have done here, supplying just one argument of a multivariate function, is called {\it partial application}.\com{is it another name for carrying? You lost me here} This is possible precisely because functions in Haskell are implicitly curried, providing a much more natural way of expressing definitions such as the second derivative being the derivative of the first.
+\com{the transition from lambda to Haskel was a bit too abrupt, you need to prepare the reader and first give expressions it both notations. It looks also that the purpose of this seciton is a bit mixed - you have to split in two I think - one to explain the carrying another is to explain how the lambda notation in general translates into Haskel}
+
+\subsection{Left-associativity}
+Our final word on notation is that all commas will be eliminated and parentheses minimised. Hence, the usual mathematical expression $f(x,y,z)$ becomes $fxyz$
+\com{in the previous section you explained that this should become $\lambda xyz.f$? I.e. here you mean that f is already a lambda expression for a function and it is applied to $x,y,z$ but that is not very clear from the text}. Together with currying, this means function application is left-associative, ie evaluated from left to right thusly\com{here I think one should say that fx means that you feed x into the first argument (as it could also be the last in principle depending on the notations)}:
+\begin{equation*}
+    fxyz \equiv ((fx)y)z
+\end{equation*}
+We will endeavour to only use parentheses in cases where function application happens before this left-associativity. An example of this is the case where our variables $x$, $y$, $z$ are instead all functions of another variable $t$:
+\begin{equation*}
+    f(x(t),y(t),z(t)) \equiv f(xt)(yt)(zt) \equiv ((f(xt))(yt))(zt)
+\end{equation*}
+where the left expression is the usual one in mathematics, the middle one is what we use in $\lambda$-calculus, and the right expression has the full set of parentheses showing order of application.
+
+\subsection{Building the systems}
+Now that we have our notation, it's time to construct our models\com{what do you mean by models - this word is used in too many ways, so needs clarification} which will give us rigorous rules with which to manipulate functions. Since functional programs have no state, their exist no statements which modify it. Instead, a functional program is run by evaluating expressions which consist of $\lambda$-terms and combinators.
+
+Much like Graham's Lisp programs, the set of expressions which we consider valid in $\lambda$ and CL are built from the ground up. If we think of these expressions as Lego\textsuperscript{TM} sets, then the bricks can be thought of as an infinite set of indivisible functions known as atomic constants, denoted by lower case letters. Functions which can be divided into smaller ones will be referred to by capital letters. By restricting function names to single letters like this, we avoid having to put spaces to distinguish them from their inputs, as in our Haskell example \code{hypot a b}.
+
+Imagine you have a set of symbols, called variables. Like atomic constants, these shall be denoted with lower case letters. Then one inductively defines a term as one of the following:
+\begin{itemize}
+    \item an atom, ie a variable or atomic constant
+    \item $(MN)$, the application of one term M to another N
+    \item $\lambda x.M$, where x is a variable and M is a term
+\end{itemize}
+\com{The point does not comes through sufficiently sharply. It sounds repetitive with the previous section, what exactly you are trying to say in 3.4 is not clear.}
+
+\subsection{Manipulating Expressions}
+Having defined valid terms, we can now define occurrences, substitutions, contractions, and equivalence, which are key to evaluating functional expressions.
+\com{put newly introduced notions in italic}
+\com{Give more context to what is going to happen in this section. Logic is lost.}
+
+\subsubsection{Free and Bound Variables}
+Consider the following $\lambda$-expression:
+\begin{equation*}
+    \lambda fg.fx(gy)
+\end{equation*}
+\com{still unsure how to decode this- this is a function which receives f and g, and then applies f to x and g to y? Is f a function of 2 variables? May be add a bit of an explanation }
+
+Then the variables $f, g$, which are passed as inputs are {\it bound} and those which are not, $x, y$, are called {\it free}\cite{LambdaAndCombinatorsIntro}. The set of free variables of a term $M$ is denoted $FV(M)$. Hence, we have:
+\begin{equation*}
+    FV(\lambda fg.fx(gy)) = \{f, g\}
+\end{equation*}
+\com{this looks like a notation thing, which is it in this section? }
+
+\subsubsection{Occurrence}
+Let us write $M\ occ\ N$ to say that a term $M$ occurs in $N$. Then, in $\lambda$, the occurrence of one term in another is defined inductively as follows:
+\begin{itemize}
+    \item $P\ occ\ P$
+    \item $P\ occ\ M \lor  P\ occ\ N \iff P\ occ\ (MN)$
+    \item $P\ occ\ M \iff P\ occ\ (\lambda x.M)$
+\end{itemize}
+Note that this means $gx$ does \textbf{not} occur in $fgx$ as function application is left-associative and the term is equivalent to $(fg)x$.
+
+\com{give context - why do we need to define this? Looks a bit random definition without the context.}
+
+\subsubsection{Substitution}
+Having defined occurrence, we can now introduce the substitution of $x$ with $P$ in $M$ as the replacement of every free occurrence of $x$ with $P$, changing the names of free variables of $M$ as required to avoid clashes which would change its semantics\cite{LambdaAndCombinatorsIntro}.\com{what is the list below about? You need to introduce it. Are these examples or a definition?}
+\begin{itemize}
+    \item $[P/x]x \equiv P$
+    \item $[P/x]a \equiv a\quad\forall a\not\equiv x$ where a is an atom
+    \item $[P/x](MN) \equiv ([P/x]M)([P/x]N)$
+    \text{\com{why $x$ cannot appear only when M and N are combined? and not in each of them separately?}}
+    \item $[P/x](\lambda x.M) \equiv \lambda x.M$
+    \item $[P/x](\lambda y.M) \equiv \lambda y.M$ when $x\notin FV(M)$
+    \item $[P/x](\lambda y.M) \equiv \lambda y.[P/x]M)$ when $\neg y\ occ\ P,\ x\in FV(M)$
+    \item $[P/x](\lambda y.M) \equiv \lambda z.([P/x][z/y]M)$ when $y\ occ\ P,\ \neg z\ occ\ M,\ x\in FV(M)$
+\end{itemize}
+With the concept of substitution formally established, we can begin to look into the logic that a functional program performs when evaluating an expression.
+
+\subsubsection{Contraction and Reduction }
+\com{what is reduction? I only see contraction explained? Is it the same}
+When applying  one function to another, such as $(\lambda x.N)P$, one would expect to be able to simplify the expression by replacing the free instances of $x$ in $N$ with $P$. This intuition is neatly captured in the concept of $\beta$-contraction:
+\com{again what is it below? if that is an example introduce it}
+\begin{align}
+    &(\lambda fgx.fx(gx))(\lambda xy.x)(\lambda xy.x)\\
+    &\equiv(\lambda fgx.fx(gx))(\lambda zy.z)(\lambda zy.z)\\
+    &\betac (\lambda gx.(\lambda zy.z)x(gx))(\lambda zy.z)\\
+    &\betac (\lambda gx.(\lambda y.x)(gx))(\lambda zy.z)\\
+    &\betac (\lambda gx.x)(\lambda zy.z)\\
+    &\betac (\lambda x.x)
+\end{align}
+
+The sequence of steps is as follows:
+\begin{enumerate}
+    \item In line $(2)$, we change the bound variables $x$ to $z$ in order to avoid clashes with the $x$ in the term $(\lambda fgx.fx(gx))$.
+    \item In line $(3)$, we pass the first of the leftmost term's arguments to it, making the substitution $[(\lambda zy.z)/f]$.
+    \item In line $(4)$, inside the leftmost expression, we contract $(\lambda zy.z)x \betac (\lambda y.x)$.
+    \item In line $(5)$, we make contraction the application of the constant function $(\lambda y.x)(gx) \betac x$.
+    \item In line $(6)$, we finally apply the leftmost term to its second argument, also the function $(\lambda zy.z)$. Since $(\lambda gx.x)$ is constant in $g$, this leaves us with the identity function $(\lambda x.x)$.
+\end{enumerate}
+
+Beta-reduction is merely a sequence of beta-contractions and is noted with the symbol $\betar$. Hence, a sequence of contractions $J\betac K\betac L\betac M\betac N$ can be written $J\betar N$\com{still unclear why to use the fancy symbol and not just an equal sign?}. Therefore, instead of the lines $(1-7)$ above, one can simply write:
+\begin{equation*}
+    (\lambda fgx.fx(gx))(\lambda xy.x)(\lambda xy.x) \betar (\lambda x.x)
+\end{equation*}
+
+\subsection{Combinatory Logic}
+\newcommand\Sc{\textbf S}
+\newcommand\Kc{\textbf K}
+\newcommand\Ic{\textbf I}
+
+\newcommand\Cc{\textbf C}
+\newcommand\Wc{\textbf W}
+\newcommand\Bc{\textbf B}
+\com{please give a clear definition of combinators here}
+
+The field of combinators 
+\com{what is the field of combinators? describe it in some way. Put new notions in italic.}
+provides further useful abstractions. Hindley and Seldin motivate the notion as a concise way to state properties of functions\cite{LambdaAndCombinatorsIntro}. Consider, for example, the commutation operator ${\textbf C}$ which swaps the arguments of a binary function:
+\begin{equation*}
+    \Cc fxy = fyx
+\end{equation*}
+Once this is defined, one can state a function \com{for a function you would say it is symmetric in its arguments, rather than commutative?} or operator $A$ is commutative by writing
+\begin{equation*}
+    A = \Cc A
+\end{equation*}
+The true power of combinators\com{still not clear what or who are the combinators, is C one of them? you did not say that.}, however, lies in their ability to build new functions out of multiple others more concisely \com{more concisely as opposed to what?} by using a "point-free" style, ie without explicitly writing down bound variables with $\lambda$ notation. Mathematicians, in fact, use a combinator when composing functions. Function composition is typically denoted with an empty circle:
+\begin{equation*}
+    (f \circ g)(x) = f(g(x))
+\end{equation*}
+In Haskell, a dot is used, allowing us to write our 2\textsuperscript{nd} derivative much more concisely as the composition of two differential operators \com{why C is related to the composition of two functions? Logic is confusing here.}:
+\begin{lstlisting}
+    deriv2 = deriv.deriv
+\end{lstlisting}
+Both of these are much shorter than the equivalent $\lambda fgx.f(gx)$ in lambda or \code{\\f g x -> f (g x)} in Haskell. In addition to our commutator $\Cc$ above, some commonly used combinators are:
+\begin{itemize}
+    \item The identity function $\Ic$ such that $\Ic f = f$. 
+    \item The constant function maker $\Kc$ such that $\forall g,\ \Kc fg = f$.
+    \item The substitution combinator $\Sc$ where $\Sc fgx = fx(gx)$.
+    \item The diagonalisation operator $\Wc$ which turns a function of two arguments into a function of one such that $\Wc fx = fxx$.
+    \item The composition operator $\Bc$ where $\Bc fgx = f(gx)$.
+    \item The reversed compositor $\Bc'$ where $\Bc' fgx = g(fx)$.
+\end{itemize}
+\com{what is the significance of the list of those combinators? Is it complete in some sense? Or these are just a few examples? not clear.}
+Analogously to lambda's $\beta$-contraction, CL has the notion of weak contraction, denoted by $\weakc$, whereby an expression is simplified through the following substitutions:
+\begin{itemize}
+    \item $\Ic x\weakc x$
+    \item $\Kc xy\weakc x$
+    \item $\Sc fgx\weakc fx(gx)$
+\end{itemize}
+
+\subsection{Lambda & CL in Practice}
+Now that we've developed the ideas of $\lambda$ notation, currying, and combinators, let's see how we might use them in a simple Haskell program.
+
+\subsection{SKI Calculus}
+An interesting property of the $\Sc, \Kc, \Ic$ combinators is that they can be used to build any other combinator\com{which are not defined yet, so this statement is hard to appreciate}. While we won't dive into a formal proof of this, the general idea can be illustrated with a couple of simple examples.
+Consider the diagonaliser $\Wc$. Through a series of tactical insertions of $\Ic$ and $\Kc$ combinators, we can put its definition in the form of a substitution $\Sc$:
+\begin{align}
+    \Wc fx&=fxx\\
+    &=fx(\Ic x)\\
+    &=\Sc f\Ic x\\
+    &=\Sc f(\Kc\Ic f)x\\
+    &=\Sc\Sc(\Kc\Ic)fx
+\end{align}
+Thus we obtain $\Wc\equiv\Sc\Sc(\Kc\Ic)$. A slightly more involved problem is expressing the reversed composition operator $\Bc'$ in this way. Firstly, note that it is a commutation of the composition operator, so we break up the problem into two parts:
+\begin{equation*}
+    \Bc'=\Cc\Bc
+\end{equation*}
+and begin work on the $\Bc$ combinator:
+\begin{align*}
+    \Bc fgx&=f(gx)\\
+    &=(\Kc fx)(gx)\\
+    &=\Sc(\Kc f)gx\\
+    &=\Kc\Sc f(\Kc f)gx\\
+    &=\Sc(\Kc\Sc)\Kc fgx
+\end{align*}
+giving us the result $\Bc=\Sc(\Kc\Sc)\Kc$. Now we begin work on the commutation operator:
+\begin{align*}
+    \Cc fxy&=fyx\\
+    &=fy(\Kc xy)\\
+    &=\Sc f(\Kc x)y\\
+    &=\Bc(\Sc f)\Kc xy\\
+    &=\Bc\Bc\Sc f\Kc xy\\
+    &=\Bc\Bc\Sc f(\Kc\Kc f)xy\\
+    &=\Sc(\Bc\Bc\Sc)(\Kc\Kc)fxy
+\end{align*}
+where we use our previous definition of $\Bc$ to expedite our arrival at the result $\Cc=\Sc(\Bc\Bc\Sc)(\Kc\Kc)$. Now, through a series of weak contractions, we obtain our final expression:
+\begin{align}
+    \Bc'&=\Sc(\Bc\Bc\Sc)(\Kc\Kc)\Bc\\
+    &\weakc\Bc\Bc\Sc\Bc(\Kc\Kc\Bc)\\
+    &\weakc\Bc\Bc\Sc\Bc\Kc\\
+    &\weakc\Bc(\Sc\Bc)\Kc\\
+    &=\Sc(\Kc\Sc)\Kc(\Sc\Bc)\Kc\\
+    &\weakc\Kc\Sc(\Sc\Bc)(\Kc(\Sc\Bc))\Kc\\
+    &\weakc\Sc(\Kc(\Sc\Bc))\Kc\\
+    &=\Sc(\Kc(\Sc(\Sc(\Kc\Sc)\Kc)))\Kc
+\end{align}
+It is clear that SKI calculus is not more practical than lambda for all purposes, since this function can simply be written as $\Bc'=\lambda fgx.g(fx)$. It is, however, instructive to see that any function can be represented in this way\com{is it true though? how can you express $\sqrt{x^2+y^2}$ for example?} in principle because it means that any model of computation can be shown to be Turing Complete by showing it can simulate just these 3 combinators.
+
+A particularly fascinating example of this was demonstrated by Michid with the Scala language's type system\cite{ScalaTypeEncoding}. Type systems are usually used to ensure correctness of a program at compile time but, in his article on type level encoding of combinators, Michid used the success or failure of the compilation itself to answer simple yes/no questions about the equivalence of two combinatory terms. To understand how this works, we shall now take a look into functional type systems.
+
+\com{you need a summary at the end of the section, and prepare reader to the next section.}

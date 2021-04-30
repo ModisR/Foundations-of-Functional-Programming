@@ -1,0 +1,111 @@
+\newcommand\ra{\rightarrow}
+\section{Type Systems}
+
+The ultimate goal of this paper is to explain the role of monads in asynchronous programming. Before looking at monads, one must understand the type systems which define them. Type systems formally describe the sorts of data with which parts of a program work. They help to check the correctness of a program at compilation, so that it doesn't attempt something nonsensical, such as finding the square root of a string of text or dividing one string by another.
+
+So far, we have trusted that the computations we have built fromLambda expressions and combinators are the building blocks from which one can assemble a generic program but we have been applying them to each other rather indiscriminately, trusting that whatever computations they represent make sense. Type systems prevent coders from compiling programs which attempt to multiply two strings together, for example, or take their square root.
+
+At an abstract level, they do, giving us a new way to think about what a computation really is and how to construct one from the use of just the $\Sc, \Kc, \Ic$ combinators. In the real world, however, we have to manipulate concrete pieces of data such as boolean values, integers, strings, etc, where the type of function becomes very important. 
+
+Neither of these are particularly helpful as they often mean the programmer has made some mistake which is left to the user to deal with. After all, a program shouldn't be written in such a way where one can accidentally attempt to square root a string.
+
+In mathematics, we solve this problem by specifying a domain for each function. . Since they're mappings from one set to another, the destination set, called the range, is also part of a mathematical function definition.
+
+In this section, we shall see how this labelling of functions with input and output sets is essentially the type system devised by Church\cite{LambdaAndCombinatorsIntro}, but also why it is insufficient for programming purposes.
+
+\subsection{Church Typing}
+
+Church defined a type as a single label stuck to each and every $\lambda$ term, signifying the set of possible values it can take. If we have a term $x$ of type $\sigma$, denoted $x^\sigma$, we can't have a term $x^\tau$ where $\sigma\not=\tau$. The system is built from a basis of indivisible {\it atomic} types and defined inductively as follows.
+\begin{itemize}
+    \item An indivisible {\it atomic} type.
+    \item A function type $(\sigma\ra\tau)$ where $\sigma$, $\tau$ are any two types, atomic or other otherwise.
+\end{itemize}
+Thus, a $\lambda$-term $f^{\sigma\ra\tau}$ can be thought of as the equivalent of the mathematical function declaration $f: \sigma\ra\tau$. This leads to the definition of a typed $\lambda$-term as a more specific version of the one given in section 3.5:
+\begin{itemize}
+    \item Any typed atom $x^\sigma$ is a typed term.
+    \item The application of $M^{\sigma\ra\tau}$ to $N^\sigma$ is a typed term $(MN)^\tau$.
+    \item The abstraction $\lambda x^\sigma.M^\tau$ is a typed term $(\lambda x.M)^{\sigma\ra\tau}$.
+\end{itemize}
+To see some examples of what typed terms look like, let's grab some combinators and analyse their equivalent $\lambda$ expressions.
+
+\subsubsection{Typing Combinators}
+
+Starting with the identity combinator, we define the term $\Ic_\rho$ and apply the type label $\rho$ to our bound variable $x$, which according to the rules above must have the same type label everywhere it occurs:
+\begin{equation}
+    \Ic_\rho:=\lambda x^\rho.x^\rho=(\lambda x.x)^{\rho\ra\rho}.
+\end{equation}
+In the rightmost expression, we use the abstraction rule above to deduce that, because we have a function which takes an argument type $\rho$ and returns one of type $\rho$, the overall expression must have the function type $\rho\ra\rho$.
+
+The constant combinator is very similar. We have two variables $x, y$ and assign them the type labels $\rho, \sigma$ respectively. This time, we apply the abstraction rule twice
+\begin{align}
+    \Kc_{\rho\sigma}:=&\lambda x^\rho y^\sigma.x^\rho
+    \\=&\lambda x^\rho.(\lambda y^\sigma.x^\rho)
+    \\=&\lambda x^\rho.(\lambda y.x)^{\sigma\ra\rho}
+    \\=&(\lambda x.\lambda y.x)^{\rho\ra(\sigma\ra\rho)}
+    \\=&(\lambda xy.x)^{\rho\ra\sigma\ra\rho}
+\end{align}
+where, in line:
+\begin{itemize}
+    \item $(28)$, we expand the expression to explicitly show its currying.
+    \item $(29)$ and $(30)$, we use the abstraction rule on the variable $y$, then $x$.
+    \item $(31)$, we contract the expression again. Note that, because arguments are fed into functions one by one due to currying, we implicitly take function types such as
+    \begin{equation}
+        \rho\ra(\sigma\ra\tau)\equiv\rho\ra\sigma\ra\tau
+    \end{equation}
+    to be equivalent.
+\end{itemize}
+Both these examples are rather uninteresting, having only one variable occurrence in the body of the function and only needing the abstraction rule to deduce their types.
+
+For a little more excitement, let's look at the composition combinator $\Bc$ where we are given the typings $x^\rho$ and $f^{\sigma\ra\tau}$.
+\begin{equation}
+    \Bc_{\rho\sigma\tau}:=\lambda f^{\sigma\ra\tau}gx^\rho.f(gx)
+\end{equation}
+From the application rule, three deductions can be made. Firstly, the function $f$ maps from $\sigma$ to $\tau$, so the term to which it is applied, $(gx)$, must have type $\sigma$. Secondly, the term it forms, $f(gx)$, must have type $\tau$. In short:
+\begin{equation}
+    f^{\sigma\ra\tau},\ f(gx)\implies(gx)^\sigma,\ f(gx)^\tau.
+\end{equation}
+Thirdly, since $x$, of type $\rho$, is mapped by $g$ to a term of type $\sigma$, $g$ must be a function from $\rho$ to $\sigma$. In short:
+\begin{equation}
+    x^\rho,\ (gx)^\sigma\implies g^{\rho\ra\sigma}.
+\end{equation}
+This allows us to relabel all the variables in the $\lambda$ expression as shown below.
+\begin{equation}
+    \Bc_{\rho\sigma\tau}:=\lambda f^{\sigma\ra\tau}g^{\rho\ra\sigma}x^\rho.(f(gx))^\tau
+\end{equation}
+Finally, we apply the abstraction rule three times, once each for $x, g, f$ in that order, to obtain:
+\begin{equation}
+    \Bc_{\rho\sigma\tau}:=(\lambda fgx.f(gx))^{(\sigma\ra\tau)\ra(\rho\ra\sigma)\ra\rho\ra\tau}
+\end{equation}
+A similar flow of logic can be used to deduce the type of any combinator. As an exercise to the reader, the next section
+
+\subsubsection{Typing the $\Sc$ Combinator}
+Given the type labellings $x^\rho$, $(gx)^\sigma$, $(fx(gx))^\tau$, deduce the type of variables $f$, $g$, and the term $\Sc_{\rho\sigma\tau}$ in the equation below.
+\begin{equation}
+    \Sc_{\rho\sigma\tau}:=\lambda fgx^\rho.(fx(gx)^\sigma)^\tau
+\end{equation}
+You will need to use the application rule as well as the abstraction rule.
+
+\subsection{Polymorphic Typing}
+
+In contrast to Church's prescriptive type system, which assigns a type to every expression before using it, Curry developed a descriptive type system, which deduces the type of an expression while evaluating it. To see why this is useful, consider the simple case of the identity function. According to Church's system, one would separately have to declare combinators $\Ic_\rho, \Ic_\sigma, \Ic_\tau$ for every single type $\rho, \sigma, \tau$ on which one wants to apply it.
+
+\begin{lstlisting}
+    id_int :: Int -> Int
+    id_int x = x
+    
+    id_str :: String -> String
+    id_str x = x
+    
+    id_bool :: Boolean -> Boolean
+    id_bool x = x
+\end{lstlisting}
+
+Polymorphism is the ability of a given expression to take on different types in different contexts. In the case of the identity combinator, this means one can make a single function declaration which works for all types.
+
+\begin{lstlisting}
+    id :: a -> a
+    id x = x
+\end{lstlisting}
+
+\subsection{Type Classes}
+\subsection{Type Constructors} 

@@ -1,0 +1,38 @@
+\section{Monads}
+Up until now, we have shunned state as being as being a superfluous entity for the conception of an algorithm. We treated every computer program as the evaluation of a single expression, typically a complex one built from many smaller, simpler ones like Lego bricks.
+
+This is, of course, a simplification. The modelling program as a function is all well and good for a one which does nothing more than perform a single calculation, deterministically mapping each given user input to a certain output. Most programs, however, have to interact with the outside world in a more persistent manner. They have to present an interface to the user that can be used to invoke multiple calculations or communicate with another computer over a network.
+
+Surely statefulness cannot be avoided here? The outside world is, after all, inherently stateful and, furthermore, unreliable. Networks can fail, computers can crash, errors can creep in.
+
+Category theory comes to the rescue by providing a convenient structure known as the monad. There are  as many different kinds of state as there are environments in which a program can run and a specific monad type can be designed for each one. As a result of this, monads provide a highly versatile, unified interface to computation that can encapsulate any kind of real world interaction ranging from basic text input/output on a command line to downloading data from a web server.
+
+\subsection{Definition}
+\begin{lstlisting}
+    class Monad m where
+        return :: a -> m a
+        (>>=) :: m a -> (a -> m b) -> m b
+\end{lstlisting}
+\subsection{Monad Laws}
+\begin{itemize}
+    \item Left identity: \texttt{return x >>= f = f x}
+    \item Right identity: \texttt{x >>= return = x}
+    \item Associativity: \texttt{(x >>= f) >>= g = x >>= ($\backslash$y -> f y >>= g)}
+\end{itemize}
+
+
+To get a taste of how monads work, we shall take a look at the simplest one - \code{Maybe}.
+\hidden{
+    \subsection{Branching}
+	Some types of computation may return multiple values from a single one. In such cases, a list data type is used as a container for all these values. This branching of one value into many can be thought of as a form of statefulness and, as such, lists can be thought of as monads. In order to implement them as such, one has to define the \texttt{return} and \texttt{>>=} as described earlier.
+}
+\subsection{Error Handling}
+How can one use a static type system to encode computations which may have errors potentially creep in, or undefined values? In Haskell, this is done with the $Maybe$ monad.
+\begin{lstlisting}
+    data Maybe a = Just a | Nothing
+\end{lstlisting}
+\subsection{Asynchronicity}
+Asynchronous operations are ones which happen independently of a program's normal flow. This happens when a web application requests data from a different web service, such as an Overleaf user taking the option to log in via their institution. If you're a King's student, for example, that web service is Microsoft Online.
+The reason why a different flow is involved is because two computers are involved, with one making an HTTP request to the other. Since this requires communication over a network, problems may arise such as connectivity issues or server errors.
+So if the data from the server is represented in your program by a type $\sigma$ one can't simply extract it with a function whose return type is also $\sigma$ because that implies a guaranteed result. Instead, we need a structure which encapsulates the possibility of failure, much like the \code{Maybe} monad. Luckily for us, some clever people have already created such structures, known as promises or futures. Both essentially function the same way, having values which fall into one of two camps: a success, along with the desired data; or a failure, typically with some sort of error message.
+

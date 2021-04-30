@@ -1,0 +1,74 @@
+\documentclass[11pt,twoside]{article}
+\usepackage[a4paper,width=160mm,top=25mm,bottom=25mm]{geometry}
+\usepackage[utf8]{inputenc}
+
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\title{Foundations of Functional Programming: Lambda Calculus, Combinators, and Monads}
+\author{Modestas Rukšnaitis}
+\date{January 2021}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{light-gray}{gray}{0.95}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{orange}{rgb}{1,.5,0}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\newcommand\hidden[1]{\iffalse{#1}\fi}
+\newcommand\com[1]{(*{\bf #1}*)}
+
+\newcommand\event[2]{\item{{\bf #1} - #2.}}
+\newcommand\code[1]{\colorbox{light-gray}{\texttt{#1}}}
+
+\lstdefinelanguage{JavaScript}{
+  morekeywords=[1]{break, continue, delete, else, for, function, if, in,
+    new, return, this, typeof, var, void, while, with},
+  % Literals, primitive types, and reference types.
+  morekeywords=[2]{false, null, true, boolean, number, undefined,
+    Array, Boolean, Date, Math, Number, String, Object},
+  % Built-ins.
+  morekeywords=[3]{eval, parseInt, parseFloat, escape, unescape},
+  sensitive,
+  morecomment=[s]{/*}{*/},
+  morecomment=[l]//,
+  morecomment=[s]{/**}{*/}, % JavaDoc style comments
+  morestring=[b]',
+  morestring=[b]"
+}[keywords, comments, strings]
+
+\lstset{frame=tb,
+  language=Javascript,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\color{orange},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=4
+}
+
+\begin{document}
+    \maketitle
+	\tableofcontents
+	
+	\include{1-abstract}
+	\include{2-intro}
+	\include{3-lambda-and-combinators}
+    \include{4-type-systems}
+    \include{5-monads}
+    \include{6-appendix}
+    
+	\bibliographystyle{alpha}
+    \bibliography{references}
+\end{document}
